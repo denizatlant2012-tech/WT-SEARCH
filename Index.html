@@ -1,0 +1,1067 @@
+<!DOCTYPE html>
+<html lang="ru" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>War Thunder Search — База знаний военной техники</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        wt: {
+                            bg: '#121417',
+                            card: '#1a1d24',
+                            border: '#2b303c',
+                            hover: '#242936',
+                            accent: '#d97706', // amber-600
+                            olive: '#4d5d47',
+                            gold: '#fbbf24',
+                            danger: '#ef4444',
+                            blue: '#3b82f6',
+                            green: '#10b981'
+                        }
+                    },
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                        mono: ['JetBrains Mono', 'Courier New', 'monospace']
+                    }
+                }
+            }
+        }
+    </script>
+    <!-- FontAwesome icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        /* Custom scrollbar */
+        ::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #121417;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #2b303c;
+            border-radius: 4px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #d97706;
+        }
+        
+        .military-pattern {
+            background-color: #121417;
+            background-image: radial-gradient(#2b303c 0.75px, transparent 0.75px);
+            background-size: 16px 16px;
+        }
+
+        .clip-corner {
+            clip-path: polygon(0 0, calc(100% - 12px) 0, 100% 12px, 100% 100%, 0 100%);
+        }
+        
+        .tactical-glow {
+            box-shadow: 0 0 15px rgba(217, 119, 6, 0.15);
+        }
+        
+        .tactical-glow-blue {
+            box-shadow: 0 0 15px rgba(59, 130, 246, 0.15);
+        }
+    </style>
+</head>
+<body class="military-pattern text-slate-200 min-h-screen flex flex-col font-sans antialiased selection:bg-amber-600 selection:text-white">
+
+    <!-- Header Navigation -->
+    <header class="bg-[#181b22]/90 backdrop-blur border-b border-wt-border sticky top-0 z-30">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
+            <!-- Logo -->
+            <div class="flex items-center space-x-3 cursor-pointer" onclick="resetFilters()">
+                <div class="w-10 h-10 bg-gradient-to-br from-amber-600 to-amber-800 rounded-md flex items-center justify-center font-bold text-slate-900 text-xl border border-amber-400 shadow-lg">
+                    <i class="fa-solid font-mono text-xl">WT</i>
+                </div>
+                <div>
+                    <h1 class="font-extrabold text-lg sm:text-xl tracking-wider text-slate-100 uppercase flex items-center gap-2">
+                        War Thunder <span class="text-amber-500 font-mono text-xs px-2 py-0.5 bg-amber-950/60 border border-amber-600/40 rounded">SEARCH</span>
+                    </h1>
+                    <p class="text-xs text-slate-400 hidden sm:block">Интерактивная база данных военной техники</p>
+                </div>
+            </div>
+
+            <!-- Header Quick Stats & Actions -->
+            <div class="flex items-center gap-3">
+                <button id="favoriteToggleBtn" onclick="toggleFavoritesFilter()" class="flex items-center gap-2 px-3 py-1.5 rounded bg-wt-card border border-wt-border hover:border-amber-500 text-sm font-medium transition text-slate-300 hover:text-amber-400">
+                    <i class="fa-solid fa-bookmark text-amber-500"></i>
+                    <span class="hidden sm:inline">Избранное</span>
+                    <span id="favCounter" class="bg-amber-500/20 text-amber-400 text-xs px-2 py-0.5 rounded-full font-mono font-bold">0</span>
+                </button>
+
+                <button id="compareBarBtn" onclick="openCompareModal()" class="flex items-center gap-2 px-3 py-1.5 rounded bg-wt-card border border-wt-border hover:border-blue-500 text-sm font-medium transition text-slate-300 hover:text-blue-400">
+                    <i class="fa-solid fa-code-compare text-blue-400"></i>
+                    <span class="hidden sm:inline">Сравнение</span>
+                    <span id="compareCounter" class="bg-blue-500/20 text-blue-400 text-xs px-2 py-0.5 rounded-full font-mono font-bold">0/2</span>
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Content Layout -->
+    <main class="flex-grow max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6 space-y-6">
+
+        <!-- Search & Control Panel -->
+        <section class="bg-wt-card border border-wt-border rounded-xl p-4 sm:p-6 shadow-xl relative overflow-hidden">
+            <div class="absolute top-0 right-0 w-64 h-64 bg-amber-500/5 rounded-full blur-3xl pointer-events-none"></div>
+
+            <div class="flex flex-col gap-4">
+                <!-- Search input row -->
+                <div class="relative">
+                    <i class="fa-solid fa-magnifying-glass absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 text-lg"></i>
+                    <input type="text" id="searchInput" placeholder="Поиск по названию (например, Т-80БВМ, F-16C, Leopard, Bismarck)..." 
+                        class="w-full pl-12 pr-10 py-3.5 bg-[#121417] border border-wt-border focus:border-amber-500 rounded-lg text-slate-100 placeholder-slate-500 focus:outline-none focus:ring-1 focus:ring-amber-500 transition font-medium text-base">
+                    <button id="clearSearchBtn" onclick="clearSearch()" class="hidden absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-200 p-1">
+                        <i class="fa-solid fa-xmark text-lg"></i>
+                    </button>
+                </div>
+
+                <!-- Primary Filters Grid -->
+                <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+                    <!-- Nation Selector -->
+                    <div>
+                        <label class="block text-xs font-semibold uppercase text-slate-400 mb-1.5 flex items-center gap-1.5">
+                            <i class="fa-solid fa-globe text-amber-500"></i> Нация
+                        </label>
+                        <select id="nationSelect" onchange="applyFilters()" class="w-full bg-[#121417] border border-wt-border rounded-lg px-3 py-2 text-sm text-slate-200 focus:border-amber-500 focus:outline-none">
+                            <option value="all">Все нации</option>
+                            <option value="ussr">СССР / Россия 🇷🇺</option>
+                            <option value="usa">США 🇺🇸</option>
+                            <option value="germany">Германия 🇩🇪</option>
+                            <option value="britain">Великобритания 🇬🇧</option>
+                            <option value="japan">Япония 🇯🇵</option>
+                            <option value="china">Китай 🇨🇳</option>
+                            <option value="italy">Италия 🇮🇹</option>
+                            <option value="france">Франция 🇫🇷</option>
+                            <option value="sweden">Швеция 🇸🇪</option>
+                            <option value="israel">Израиль 🇮🇱</option>
+                        </select>
+                    </div>
+
+                    <!-- Type Selector -->
+                    <div>
+                        <label class="block text-xs font-semibold uppercase text-slate-400 mb-1.5 flex items-center gap-1.5">
+                            <i class="fa-solid fa-crosshairs text-amber-500"></i> Тип техники
+                        </label>
+                        <select id="typeSelect" onchange="applyFilters()" class="w-full bg-[#121417] border border-wt-border rounded-lg px-3 py-2 text-sm text-slate-200 focus:border-amber-500 focus:outline-none">
+                            <option value="all">Все типы</option>
+                            <option value="tank">Наземная техника (Танки)</option>
+                            <option value="aviation">Авиация (Самолеты)</option>
+                            <option value="helicopter">Вертолеты</option>
+                            <option value="fleet">Флот (Корабли)</option>
+                        </select>
+                    </div>
+
+                    <!-- Rank Selector -->
+                    <div>
+                        <label class="block text-xs font-semibold uppercase text-slate-400 mb-1.5 flex items-center gap-1.5">
+                            <i class="fa-solid fa-layer-group text-amber-500"></i> Ранг
+                        </label>
+                        <select id="rankSelect" onchange="applyFilters()" class="w-full bg-[#121417] border border-wt-border rounded-lg px-3 py-2 text-sm text-slate-200 focus:border-amber-500 focus:outline-none">
+                            <option value="all">Все ранги (I - VIII)</option>
+                            <option value="1">Ранг I</option>
+                            <option value="2">Ранг II</option>
+                            <option value="3">Ранг III</option>
+                            <option value="4">Ранг IV</option>
+                            <option value="5">Ранг V</option>
+                            <option value="6">Ранг VI</option>
+                            <option value="7">Ранг VII</option>
+                            <option value="8">Ранг VIII</option>
+                        </select>
+                    </div>
+
+                    <!-- BR Slider Filter -->
+                    <div>
+                        <div class="flex justify-between text-xs font-semibold uppercase text-slate-400 mb-1.5">
+                            <span class="flex items-center gap-1.5"><i class="fa-solid fa-gauge-high text-amber-500"></i> БР (Боевой рейтинг)</span>
+                            <span id="brRangeValue" class="text-amber-400 font-mono font-bold">1.0 - 12.7</span>
+                        </div>
+                        <div class="flex items-center space-x-2 pt-1">
+                            <input type="range" id="brMinInput" min="1.0" max="12.7" step="0.3" value="1.0" oninput="updateBrSlider()" class="w-full accent-amber-500 bg-[#121417] h-2 rounded cursor-pointer">
+                            <input type="range" id="brMaxInput" min="1.0" max="12.7" step="0.3" value="12.7" oninput="updateBrSlider()" class="w-full accent-amber-500 bg-[#121417] h-2 rounded cursor-pointer">
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Active Filters Chips & Sort Bar -->
+                <div class="flex flex-wrap items-center justify-between gap-3 pt-2 border-t border-wt-border/50">
+                    <div class="flex items-center gap-2 text-xs text-slate-400">
+                        <span>Найдено единиц: <strong id="resultsCount" class="text-amber-400 font-mono font-bold text-sm">0</strong></span>
+                        <button id="resetAllBtn" onclick="resetFilters()" class="hidden hover:text-amber-400 underline ml-2">Сбросить фильтры</button>
+                    </div>
+
+                    <!-- Sort dropdown -->
+                    <div class="flex items-center gap-2">
+                        <span class="text-xs text-slate-400 uppercase font-semibold">Сортировка:</span>
+                        <select id="sortSelect" onchange="applyFilters()" class="bg-[#121417] border border-wt-border rounded px-2.5 py-1 text-xs text-slate-200 focus:border-amber-500 focus:outline-none">
+                            <option value="br_desc">БР: по убыванию</option>
+                            <option value="br_asc">БР: по возрастанию</option>
+                            <option value="name_asc">Имя: А-Я</option>
+                            <option value="rank_desc">Ранг: по убыванию</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Main Cards Grid View -->
+        <section id="cardsGrid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5">
+            <!-- Cards populated by JavaScript -->
+        </section>
+
+        <!-- Empty State -->
+        <div id="emptyState" class="hidden text-center py-16 bg-wt-card border border-wt-border rounded-xl">
+            <i class="fa-solid fa-radar text-5xl text-slate-600 mb-4 animate-pulse"></i>
+            <h3 class="text-xl font-bold text-slate-300">Техника не найдена</h3>
+            <p class="text-slate-500 text-sm max-w-md mx-auto mt-1">Попробуйте изменить параметры поиска, расширить диапазон боевого рейтинга или выбрать другую нацию.</p>
+            <button onclick="resetFilters()" class="mt-4 px-4 py-2 bg-amber-600 hover:bg-amber-500 text-slate-900 font-bold text-sm rounded shadow transition">
+                Сбросить фильтры
+            </button>
+        </div>
+
+    </main>
+
+    <!-- Footer -->
+    <footer class="bg-[#15181e] border-t border-wt-border mt-12 py-6">
+        <div class="max-w-7xl mx-auto px-4 text-center sm:flex sm:justify-between sm:items-center text-xs text-slate-500">
+            <p>© War Thunder Search — Неофициальный справочник и база знаний. Все права на логотипы и названия принадлежат Gaijin Entertainment.</p>
+            <p class="mt-2 sm:mt-0 font-mono">Обновлено до актуального патча • 2026</p>
+        </div>
+    </footer>
+
+    <!-- MODAL: Vehicle Detail View -->
+    <div id="detailModal" class="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-3 sm:p-6 hidden overflow-y-auto">
+        <div class="bg-wt-card border border-wt-border w-full max-w-4xl rounded-xl shadow-2xl overflow-hidden relative max-h-[90vh] flex flex-col my-auto">
+            
+            <!-- Modal Header -->
+            <div id="modalHeader" class="relative bg-gradient-to-r from-slate-900 via-[#1e232d] to-slate-900 p-5 border-b border-wt-border flex items-start justify-between">
+                <div class="space-y-1">
+                    <div class="flex items-center gap-2">
+                        <span id="modalNationBadge" class="text-xs px-2.5 py-0.5 rounded font-bold uppercase bg-slate-800 text-slate-300 border border-slate-700"></span>
+                        <span id="modalTypeBadge" class="text-xs px-2.5 py-0.5 rounded font-bold uppercase bg-amber-950/60 text-amber-400 border border-amber-600/40"></span>
+                        <span id="modalRankBadge" class="text-xs px-2.5 py-0.5 rounded font-mono font-bold bg-slate-800 text-slate-300"></span>
+                    </div>
+                    <h2 id="modalTitle" class="text-2xl sm:text-3xl font-black text-white tracking-wide uppercase"></h2>
+                    <p id="modalRole" class="text-sm text-slate-400 italic"></p>
+                </div>
+
+                <div class="flex items-center gap-3">
+                    <div class="text-right">
+                        <div class="text-xs text-slate-400 uppercase font-semibold">Боевой Рейтинг</div>
+                        <div id="modalBR" class="text-2xl font-black font-mono text-amber-400"></div>
+                    </div>
+                    <button onclick="closeDetailModal()" class="w-9 h-9 rounded-full bg-slate-800 hover:bg-slate-700 text-slate-300 flex items-center justify-center border border-slate-600 transition">
+                        <i class="fa-solid fa-xmark text-lg"></i>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Modal Content (Scrollable) -->
+            <div class="p-5 sm:p-6 overflow-y-auto space-y-6 flex-grow">
+                
+                <!-- Main Spec Grid -->
+                <div class="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                    <div class="bg-[#121417] p-3 rounded-lg border border-wt-border">
+                        <span class="text-xs text-slate-500 uppercase block font-semibold">Макс. Скорость</span>
+                        <span id="statSpeed" class="text-base font-bold font-mono text-slate-200"></span>
+                    </div>
+                    <div class="bg-[#121417] p-3 rounded-lg border border-wt-border">
+                        <span class="text-xs text-slate-500 uppercase block font-semibold">Пробитие / Нагрузка</span>
+                        <span id="statPenetration" class="text-base font-bold font-mono text-amber-400"></span>
+                    </div>
+                    <div class="bg-[#121417] p-3 rounded-lg border border-wt-border">
+                        <span class="text-xs text-slate-500 uppercase block font-semibold">Перезарядка / Скорострельность</span>
+                        <span id="statReload" class="text-base font-bold font-mono text-slate-200"></span>
+                    </div>
+                    <div class="bg-[#121417] p-3 rounded-lg border border-wt-border">
+                        <span class="text-xs text-slate-500 uppercase block font-semibold">Экипаж / Пилот</span>
+                        <span id="statCrew" class="text-base font-bold font-mono text-slate-200"></span>
+                    </div>
+                </div>
+
+                <!-- Armament & Armor Layout -->
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <!-- Armament Specs -->
+                    <div class="bg-[#14171d] p-4 rounded-xl border border-wt-border space-y-3">
+                        <h3 class="text-sm font-bold uppercase text-amber-500 flex items-center gap-2">
+                            <i class="fa-solid fa-gun"></i> Вооружение и снаряды
+                        </h3>
+                        <ul id="modalArmamentList" class="space-y-2 text-sm text-slate-300"></ul>
+                    </div>
+
+                    <!-- Armor & Protection -->
+                    <div class="bg-[#14171d] p-4 rounded-xl border border-wt-border space-y-3">
+                        <h3 class="text-sm font-bold uppercase text-blue-400 flex items-center gap-2">
+                            <i class="fa-solid fa-shield-halved"></i> Защита и Бронирование
+                        </h3>
+                        <div id="modalArmorSpecs" class="space-y-2 text-sm text-slate-300"></div>
+                    </div>
+                </div>
+
+                <!-- Pros and Cons -->
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div class="bg-emerald-950/20 border border-emerald-800/40 p-4 rounded-xl">
+                        <h4 class="text-xs font-bold uppercase text-emerald-400 mb-2 flex items-center gap-1.5">
+                            <i class="fa-solid fa-circle-plus"></i> Плюсы техники
+                        </h4>
+                        <ul id="modalPros" class="list-disc list-inside text-sm space-y-1 text-emerald-200/90"></ul>
+                    </div>
+                    <div class="bg-rose-950/20 border border-rose-800/40 p-4 rounded-xl">
+                        <h4 class="text-xs font-bold uppercase text-rose-400 mb-2 flex items-center gap-1.5">
+                            <i class="fa-solid fa-circle-minus"></i> Минусы техники
+                        </h4>
+                        <ul id="modalCons" class="list-disc list-inside text-sm space-y-1 text-rose-200/90"></ul>
+                    </div>
+                </div>
+
+                <!-- Tactical Tips / Playstyle -->
+                <div class="bg-[#14171d] p-4 rounded-xl border border-wt-border">
+                    <h3 class="text-sm font-bold uppercase text-slate-200 mb-2 flex items-center gap-2">
+                        <i class="fa-solid fa-chess-board text-amber-500"></i> Тактические рекомендации и геймплей
+                    </h3>
+                    <p id="modalTactics" class="text-sm text-slate-300 leading-relaxed"></p>
+                </div>
+
+            </div>
+
+            <!-- Modal Footer -->
+            <div class="p-4 bg-[#121417] border-t border-wt-border flex justify-between items-center">
+                <button id="modalCompareToggle" class="px-4 py-2 rounded bg-wt-card border border-wt-border hover:border-blue-500 text-slate-200 text-sm font-medium transition flex items-center gap-2">
+                    <i class="fa-solid fa-code-compare"></i> <span>Добавить к сравнению</span>
+                </button>
+                <button onclick="closeDetailModal()" class="px-5 py-2 rounded bg-amber-600 hover:bg-amber-500 text-slate-900 font-bold text-sm transition">
+                    Закрыть
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL: Vehicle Comparison -->
+    <div id="compareModal" class="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-3 sm:p-6 hidden overflow-y-auto">
+        <div class="bg-wt-card border border-wt-border w-full max-w-5xl rounded-xl shadow-2xl overflow-hidden relative max-h-[90vh] flex flex-col my-auto">
+            <!-- Compare Header -->
+            <div class="bg-slate-900 p-4 border-b border-wt-border flex justify-between items-center">
+                <h2 class="text-xl font-bold uppercase tracking-wide text-slate-100 flex items-center gap-2">
+                    <i class="fa-solid fa-code-compare text-blue-400"></i> Сравнение характеристик
+                </h2>
+                <button onclick="closeCompareModal()" class="text-slate-400 hover:text-white p-1">
+                    <i class="fa-solid fa-xmark text-xl"></i>
+                </button>
+            </div>
+
+            <!-- Compare Content -->
+            <div class="p-5 overflow-y-auto space-y-4 flex-grow">
+                <div id="compareEmptyState" class="text-center py-12 text-slate-400">
+                    <i class="fa-solid fa-balance-scale text-4xl text-slate-600 mb-3"></i>
+                    <p class="text-base font-semibold">Выберите 2 единицы техники для сравнения.</p>
+                    <p class="text-xs text-slate-500 mt-1">Используйте кнопку <i class="fa-solid fa-code-compare text-blue-400 mx-1"></i> на карточке техники.</p>
+                </div>
+
+                <div id="compareTableWrapper" class="hidden overflow-x-auto">
+                    <table class="w-full text-left border-collapse text-sm">
+                        <thead>
+                            <tr class="border-b border-wt-border text-slate-400 uppercase text-xs">
+                                <th class="p-3 w-1/3">Параметр</th>
+                                <th id="cmpHeader1" class="p-3 w-1/3 text-amber-400 font-bold text-base"></th>
+                                <th id="cmpHeader2" class="p-3 w-1/3 text-blue-400 font-bold text-base"></th>
+                            </tr>
+                        </thead>
+                        <tbody id="compareTableBody" class="divide-y divide-wt-border/50 text-slate-300 font-mono">
+                            <!-- Populated dynamically -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- Compare Footer -->
+            <div class="p-4 bg-[#121417] border-t border-wt-border flex justify-between items-center">
+                <button onclick="clearCompareList()" class="text-xs text-rose-400 hover:underline flex items-center gap-1">
+                    <i class="fa-solid fa-trash"></i> Очистить сравнение
+                </button>
+                <button onclick="closeCompareModal()" class="px-5 py-2 rounded bg-slate-800 hover:bg-slate-700 text-slate-200 text-sm font-semibold">
+                    Закрыть
+                </button>
+            </div>
+        </div>
+    </div>
+
+
+    <!-- APP JAVASCRIPT LOGIC -->
+    <script>
+        // Database of War Thunder Vehicles
+        const db = [
+            {
+                id: "t80bvm",
+                name: "Т-80БВМ",
+                nation: "ussr",
+                nationName: "СССР / Россия",
+                flag: "🇷🇺",
+                type: "tank",
+                typeName: "ОБТ",
+                rank: 8,
+                br: 12.7,
+                speed: "70 км/ч (вперед), 11 км/ч (назад)",
+                penetration: "600 мм (ОБПС 3БМ60)",
+                reload: "6.5 сек (Автомат заряжания)",
+                crew: "3 человека",
+                armament: ["125-мм пушка 2А46М-4", "ПТУР 9М119M1 Инвар-М", "Пулемет 12.7-мм НСВТ"],
+                armor: "ДЗ 'Реликт' на башне и корпусе + комбинированная броня. Высокая стойкость к КС и ОБПС.",
+                pros: ["Отличная динамика вперед благодаря ГТД (1250 л.с.)", "Мощнейший снаряд 3БМ60", "Всеракурсная ДЗ Реликт держит кумулятивы и кинетику", "Тепловизор 2-го поколения"],
+                cons: ["Медленный задний ход (11 км/ч)", "Плохие углы склонения орудия (-5°)", "Плотная компоновка: уязвимый автомат заряжания"],
+                tactics: "Используйте преимущество в скорости для агресивных фланговых прорывов. Избегайте перестрелок на ухабистом рельефе из-за слабого УВН."
+            },
+            {
+                id: "su25t",
+                name: "Су-25Т",
+                nation: "ussr",
+                nationName: "СССР / Россия",
+                flag: "🇷🇺",
+                type: "aviation",
+                typeName: "Штурмовик",
+                rank: 7,
+                br: 11.7,
+                speed: "950 км/ч",
+                penetration: "1000 мм (ПТУР Вихрь)",
+                reload: "Залп / СПО",
+                crew: "1 пилот",
+                armament: ["30-мм двуствольная автопушка ГШ-30-2", "16х ПТУР 9К121 Вихрь", "КАБ-500Кр", "УРВВ Р-60М / Р-73"],
+                armor: "Бронекабина из титана (до 24 мм), бронестекло 57 мм.",
+                pros: ["ПТУР Вихрь с радиовзрывателем уничтожают и танки, и вертолеты", "Высокая живучесть конструкции", "Оптико-электронный комплекс 'Шквал'"],
+                cons: ["Дозвуковой", "Тяжелое управление при полной боевой нагрузке", "Уязвим для топовых ЗРК"],
+                tactics: "Запускайте 'Вихри' с предельной дистанции (8-10 км), находясь вне зоны поражения стержневых ЗРК. Пользуйтесь прицельным комплексом 'Шквал'."
+            },
+            {
+                id: "leopard2a6",
+                name: "Leopard 2A6",
+                nation: "germany",
+                nationName: "Германия",
+                flag: "🇩🇪",
+                type: "tank",
+                typeName: "ОБТ",
+                rank: 8,
+                br: 12.7,
+                speed: "68 км/ч (вперед), 31 км/ч (назад)",
+                penetration: "652 мм (ОБПС DM53)",
+                reload: "6.0 сек (эксперты)",
+                crew: "4 человека",
+                armament: ["120-мм гладкоствольная пушка L/55", "2х 7.62-мм пулемета MG3A1"],
+                armor: "Усиленное клиновидное бронирование башни, комбинированная броня Hull.",
+                pros: ["Орудие L/55 со снарядом DM53 шибет любую броню", "Превосходный задний ход (31 км/ч)", "Отличные УВН (-9°)", "Просторное боевое отделение"],
+                cons: ["Низок уровень защиты НЛД корпуса", "Огромная маска орудия — уязвимая зона"],
+                tactics: "Идеален для игры от укрытий и холмов (Hull-down). Используйте точное орудие L/55 для снайпинга на дальних дистанциях."
+            },
+            {
+                id: "f16c",
+                name: "F-16C Block 50",
+                nation: "usa",
+                nationName: "США",
+                flag: "🇺🇸",
+                type: "aviation",
+                typeName: "Истребитель",
+                rank: 8,
+                br: 12.7,
+                speed: "2200 км/ч (Мах 2.05)",
+                penetration: "УРВП AGM-65D / GBU-24",
+                reload: "Авиационные пилоны",
+                crew: "1 пилот",
+                armament: ["20-мм шестиствольная пушка M61A1 Vulcan", "УРВВ AIM-120A AMRAAM", "AIM-9M Sidewinder", "УАБ GBU-12/24"],
+                armor: "Отсутствует (легкая конструкция).",
+                pros: ["Феноменальная маневренность и тяговооруженность", "РЛС APG-68 с режимами СДЦ и Сопровождения на проходе", "УРВВ AIM-120 (активное РЛ Наведение)"],
+                cons: ["Ограниченный запас топлива на форсаже", "Чувствителен к перегрузкам при высокой скорости"],
+                tactics: "В воздухе применяйте тактику 'BVR' (загоризонтный бой) с ракетами AIM-120. В ближнем бою используйте AIM-9M без дымового шлейфа."
+            },
+            {
+                id: "m1a2sep",
+                name: "M1A2 SEP Abrams",
+                nation: "usa",
+                nationName: "США",
+                flag: "🇺🇸",
+                type: "tank",
+                typeName: "ОБТ",
+                rank: 8,
+                br: 12.7,
+                speed: "68 км/ч (вперед), 38 км/ч (назад)",
+                penetration: "629 мм (ОБПС M829A2)",
+                reload: "5.0 сек (асы)",
+                crew: "4 человека",
+                armament: ["120-мм пушка M256", "12.7-мм пулемет M2HB", "2х 7.62-мм M240"],
+                armor: "Уран второго поколения в башне, вышибные панели для боекомплекта.",
+                pros: ["Рекордно быстрая перезарядка (5 сек)", "Выживаемость экипажа благодаря вышибным панелям БК", "Задний ход 38 км/ч"],
+                cons: ["Огромная уязвимая зона под башней (погон)", "Высокий силуэт и громкий звук газотурбинного двигателя"],
+                tactics: "Перестреливайте противников за счет скорости перезарядки 5 сек. Всегда поворачивайтесь к врагу лобовой броней башни."
+            },
+            {
+                id: "ka52",
+                name: "Ка-52 'Аллигатор'",
+                nation: "ussr",
+                nationName: "СССР / Россия",
+                flag: "🇷🇺",
+                type: "helicopter",
+                typeName: "Ударный вертолет",
+                rank: 8,
+                br: 12.7,
+                speed: "310 км/ч",
+                penetration: "1000 мм (ПТУР Вихрь-1)",
+                reload: "Авиапушка / Подвесы",
+                crew: "2 человека (соосный винт)",
+                armament: ["30-мм подвижная пушка 2А42", "12х ПТУР Вихрь-1", "УРВВ Игла-В / 9М39", "БКО 'Витебск'"],
+                armor: "Бронирование кабины (бронестекло и плиты) от пуль 12.7 мм.",
+                pros: ["Соосная схема винтов: управление сохраняется даже без хвостовой балки", "БКО 'Витебск' отводит ИК-ракеты", "Радар 'Арбалет'"],
+                cons: ["Крупные габариты", "Ограниченные углы обстрела пушки 2А42"],
+                tactics: "Зависайте за деревьями и укрытиями, поднимаясь только для пуска 'Вихрей'. Используйте БКО для защиты от ИК-ЗРК."
+            },
+            {
+                id: "bismarck",
+                name: "Bismarck",
+                nation: "germany",
+                nationName: "Германия",
+                flag: "🇩🇪",
+                type: "fleet",
+                typeName: "Линкор",
+                rank: 6,
+                br: 7.0,
+                speed: "30.5 узлов (57 км/ч)",
+                penetration: "Бронебойный 380-мм снаряд",
+                reload: "26 сек (главный калибр)",
+                crew: "2065 человек",
+                armament: ["8 x 380-мм SK C/34 (4х2)", "12 x 150-мм SK C/28", "16 x 105-мм зенитных орудий"],
+                armor: "Броневой пояс 320 мм + скосы палубы (схема 'Черепаха').",
+                pros: ["Легендарная схема бронирования 'Черепаха' (почти невосприимчив к цитадельным попаданиям на близких дистанциях)", "Мощный ГК с хорошей баллистикой"],
+                cons: ["Слабое бронирование палубы против навесного огня с дальних дистанций", "Уязвим для авиационных торпед"],
+                tactics: "Вступайте в средний и ближний бой, где схема бронирования цитадели наиболее эффективна. Держите борт под небольшим углом."
+            },
+            {
+                id: "tornado_gr1",
+                name: "Tornado GR.1",
+                nation: "britain",
+                nationName: "Великобритания",
+                flag: "🇬🇧",
+                type: "aviation",
+                typeName: "Ударный истребитель",
+                rank: 8,
+                br: 11.3,
+                speed: "2300 км/ч (Крыло измер. стреловидности)",
+                penetration: "УАБ Paveway II / PGMW",
+                reload: "Пилоны",
+                crew: "2 человека",
+                armament: ["27-мм пушка Mauser BK-27", "УРВВ AIM-9L Sidewinder", "Бомбы Paveway II", "Контейнер TIALD"],
+                armor: "Отсутствует",
+                pros: ["Высокая скорость у земли благодаря крылу изменяемой стреловидности", "Отличные бомбы с лазерным наведением Paveway"],
+                cons: ["Слабая маневренность в установившемся вираже", "Большая заметность"],
+                tactics: "Сверхзвуковой прорыв на сверхмалой высоте ниже ЛОС радаров ЗРК. Сброс корректируемых бомб с высоты с прицелом TIALD."
+            },
+            {
+                id: "challenger2",
+                name: "Challenger 2 (BN)",
+                nation: "britain",
+                nationName: "Великобритания",
+                flag: "🇬🇧",
+                type: "tank",
+                typeName: "ОБТ",
+                rank: 8,
+                br: 11.7,
+                speed: "59 км/ч (вперед), 36 км/ч (назад)",
+                penetration: "564 мм (ОБПС L27A1)",
+                reload: "5.0 сек (первые 4 выстрела)",
+                crew: "4 человека",
+                armament: ["120-мм нарезная пушка L30A1", "2х 7.62-мм пулемета L94A1"],
+                armor: "Комбинированная броня Dorchester + блоки ДЗ ROMOR/Megatron.",
+                pros: ["Крайне крепкая щека башни", "Быстрая перезарядка первой боеукладки (5 сек)", "Отличная оптика и тепловизоры"],
+                cons: ["Слабая защита НЛД корпуса", "Низкая максимальная скорость в сравнении с конкурентами"],
+                tactics: "Занимайте позиции 'голова в поле' (Hull-down). Прячьте корпус и ведите огонь из-за холмов."
+            },
+            {
+                id: "type10",
+                name: "Type 10",
+                nation: "japan",
+                nationName: "Япония",
+                flag: "🇯🇵",
+                type: "tank",
+                typeName: "ОБТ",
+                rank: 8,
+                br: 11.7,
+                speed: "70 км/ч (вперед), 70 км/ч (назад)",
+                penetration: "615 мм (ОБПС Type 10)",
+                reload: "4.0 сек (Автомат заряжания)",
+                crew: "3 человека",
+                armament: ["120-мм пушка Japan Steel Works", "12.7-мм M2HB", "7.62-мм Type 74"],
+                armor: "Легкая нанизываемая модульная броня из нанокристаллической стали.",
+                pros: ["Самая быстрая перезарядка в игре (4.0 секунды!)", "Одинаковая скорость назад и вперед (70 км/ч)", "Гидропневматическая подвеска (регулировка клиренса)"],
+                cons: ["Слабое общее бронирование корпуса", "Малый экипаж"],
+                tactics: "Используйте беспрецедентную перезарядку 4 сек и невероятную реверсивность для быстрых вылазок из-за угла."
+            },
+            {
+                id: "z19e",
+                name: "Z-19E",
+                nation: "china",
+                nationName: "Китай",
+                flag: "🇨🇳",
+                type: "helicopter",
+                typeName: "Ударный вертолет",
+                rank: 7,
+                br: 11.3,
+                speed: "280 км/ч",
+                penetration: "УРВВ TY-90 (воздух-воздух)",
+                reload: "Подвесы",
+                crew: "2 человека",
+                armament: ["8х ПТУР AKD-9", "8х УРВВ TY-90", "Миллиметровый радар над втулкой винта"],
+                armor: "Легкое бронирование кресел экипажа.",
+                pros: ["УРВВ TY-90 — лучшие ракеты 'воздух-воздух' для вертолетов в игре", "Надвтулочный радар позволяет видеть врагов из-за укрытий"],
+                cons: ["Отсутствие встроенной курсовой автопушки", "Небольшой калибр ПТУР AKD-9"],
+                tactics: "Используйте Z-19E как истребитель вражеской авиации и вертолетов противника с помощью ракет TY-90."
+            },
+            {
+                id: "ariete_amv",
+                name: "Ariete AMV",
+                nation: "italy",
+                nationName: "Италия",
+                flag: "🇮🇹",
+                type: "tank",
+                typeName: "ОБТ",
+                rank: 8,
+                br: 11.7,
+                speed: "65 км/ч",
+                penetration: "625 мм (ОБПС CL3143 / DM53)",
+                reload: "6.0 сек",
+                crew: "4 человека",
+                armament: ["120-мм пушка OTO Melara 120/44", "2х 7.62-мм MG42/59"],
+                armor: "Стальное и композитное бронирование базового уровня.",
+                pros: ["Новый двигатель IVECO 1500 л.с. (улучшенная удельная мощность)", "Отличный снаряд CL3143", "Тепловизор 3-го поколения"],
+                cons: ["Низкая бронезащита башни и корпуса против топовых ОБПС"],
+                tactics: "Играйте во второй линии или в роли снайпера. Не надейтесь на броню, полагайтесь на первый точный выстрел."
+            },
+            {
+                id: "mirage20005f",
+                name: "Mirage 2000-5F",
+                nation: "france",
+                nationName: "Франция",
+                flag: "🇫🇷",
+                type: "aviation",
+                typeName: "Истребитель",
+                rank: 8,
+                br: 12.7,
+                speed: "2340 км/ч (Мах 2.2)",
+                penetration: "УРВВ MICA EM / ИК",
+                reload: "Авиационные пилоны",
+                crew: "1 пилот",
+                armament: ["2х 30-мм пушки DEFA 554", "УРВВ MICA EM (Активное РЛ Наведение)", "MICA IR", "Бомбы BGL-1000"],
+                armor: "Отсутствует",
+                pros: ["Ракеты MICA с невероятным УВТ (управление вектором тяги)", "Дельтавидное крыло дает вираж в первый момент", "Импульсно-доплеровский радар RDY"],
+                cons: ["Быстро теряет скорость в затяжном вираже"],
+                tactics: "Вступайте в ближний маневренный бой, запускайте ракеты MICA под большими углами."
+            },
+            {
+                id: "strv122b",
+                name: "Strv 122B+ Plus",
+                nation: "sweden",
+                nationName: "Швеция",
+                flag: "🇸🇪",
+                type: "tank",
+                typeName: "ОБТ",
+                rank: 8,
+                br: 12.7,
+                speed: "68 км/ч",
+                penetration: "625 мм (ОБПС slpprg m/95)",
+                reload: "6.0 сек",
+                crew: "4 человека",
+                armament: ["120-мм пушка L/44", "2х 7.62-мм Ksp m/94"],
+                armor: "Усиленный бронепакет корпуса и крыши башни (модули MEXAS/AMAP).",
+                pros: ["Самый бронированный ОБТ в игре (защищен корпус и башня)", "Отличная динамика Leopard 2A5/A6", "Тепловизоры"],
+                cons: ["Чуть тяжелее базового Leopard 2"],
+                tactics: "Штурмуйте ключевые точки. В отличие от немецких Leopard, Strv 122B способен выдерживать попадания ОБПС прямо в ВЛД."
+            },
+            {
+                id: "merkava4m",
+                name: "Merkava Mk.4M",
+                nation: "israel",
+                nationName: "Израиль",
+                flag: "🇮🇱",
+                type: "tank",
+                typeName: "ОБТ",
+                rank: 8,
+                br: 12.3,
+                speed: "64 км/ч",
+                penetration: "600 мм (ОБПС M338)",
+                reload: "6.0 сек",
+                crew: "4 человека",
+                armament: ["120-мм пушка MG253", "12.7-мм M2HB", "3х 7.62-мм FN MAG", "60-мм миномет"],
+                armor: "Переднее расположение МТО, КАЗ 'Trophy' (Iron Fist).",
+                pros: ["КАЗ 'Trophy' сбивает ПТУРы и кумулятивные снаряды на подлете", "Переднее расположение двигателя защищает экипаж при пробитии лба"],
+                cons: ["Огромный силуэт", "При пробитии переда двигатель сразу выходит из строя"],
+                tactics: "Держите дистанцию, доверяйте КАЗ 'Trophy' для защиты от вражеских ПТУРов и вертолетов."
+            }
+        ];
+
+        // State Management
+        let favorites = JSON.parse(localStorage.getItem('wt_favorites') || '[]');
+        let compareList = JSON.parse(localStorage.getItem('wt_compare') || '[]');
+
+        // DOM Elements
+        const searchInput = document.getElementById('searchInput');
+        const clearSearchBtn = document.getElementById('clearSearchBtn');
+        const nationSelect = document.getElementById('nationSelect');
+        const typeSelect = document.getElementById('typeSelect');
+        const rankSelect = document.getElementById('rankSelect');
+        const sortSelect = document.getElementById('sortSelect');
+        const brMinInput = document.getElementById('brMinInput');
+        const brMaxInput = document.getElementById('brMaxInput');
+        const brRangeValue = document.getElementById('brRangeValue');
+        const cardsGrid = document.getElementById('cardsGrid');
+        const emptyState = document.getElementById('emptyState');
+        const resultsCount = document.getElementById('resultsCount');
+        const resetAllBtn = document.getElementById('resetAllBtn');
+        const favCounter = document.getElementById('favCounter');
+        const compareCounter = document.getElementById('compareCounter');
+        
+        let showFavoritesOnly = false;
+
+        // Initialize App
+        window.addEventListener('DOMContentLoaded', () => {
+            updateCounters();
+            applyFilters();
+
+            searchInput.addEventListener('input', (e) => {
+                clearSearchBtn.classList.toggle('hidden', !e.target.value);
+                applyFilters();
+            });
+        });
+
+        // BR Slider synchronization
+        function updateBrSlider() {
+            let min = parseFloat(brMinInput.value);
+            let max = parseFloat(brMaxInput.value);
+
+            if (min > max) {
+                const temp = min;
+                min = max;
+                max = temp;
+            }
+
+            brRangeValue.textContent = `${min.toFixed(1)} - ${max.toFixed(1)}`;
+            applyFilters();
+        }
+
+        function clearSearch() {
+            searchInput.value = '';
+            clearSearchBtn.classList.add('hidden');
+            applyFilters();
+        }
+
+        function resetFilters() {
+            searchInput.value = '';
+            clearSearchBtn.classList.add('hidden');
+            nationSelect.value = 'all';
+            typeSelect.value = 'all';
+            rankSelect.value = 'all';
+            sortSelect.value = 'br_desc';
+            brMinInput.value = 1.0;
+            brMaxInput.value = 12.7;
+            brRangeValue.textContent = '1.0 - 12.7';
+            showFavoritesOnly = false;
+            document.getElementById('favoriteToggleBtn').classList.remove('border-amber-500', 'bg-amber-950/40');
+            applyFilters();
+        }
+
+        function toggleFavoritesFilter() {
+            showFavoritesOnly = !showFavoritesOnly;
+            const btn = document.getElementById('favoriteToggleBtn');
+            if (showFavoritesOnly) {
+                btn.classList.add('border-amber-500', 'bg-amber-950/40');
+            } else {
+                btn.classList.remove('border-amber-500', 'bg-amber-950/40');
+            }
+            applyFilters();
+        }
+
+        // Main Filtering and Rendering
+        function applyFilters() {
+            const query = searchInput.value.toLowerCase().trim();
+            const nation = nationSelect.value;
+            const type = typeSelect.value;
+            const rank = rankSelect.value;
+            const sort = sortSelect.value;
+            let minBr = Math.min(parseFloat(brMinInput.value), parseFloat(brMaxInput.value));
+            let maxBr = Math.max(parseFloat(brMinInput.value), parseFloat(brMaxInput.value));
+
+            // Check if any filter is active for Reset button
+            const isFilterActive = query !== '' || nation !== 'all' || type !== 'all' || rank !== 'all' || minBr > 1.0 || maxBr < 12.7 || showFavoritesOnly;
+            resetAllBtn.classList.toggle('hidden', !isFilterActive);
+
+            let filtered = db.filter(item => {
+                // Search query filter
+                const matchesSearch = item.name.toLowerCase().includes(query) || 
+                                      item.nationName.toLowerCase().includes(query) ||
+                                      item.typeName.toLowerCase().includes(query);
+                if (!matchesSearch) return false;
+
+                // Nation
+                if (nation !== 'all' && item.nation !== nation) return false;
+
+                // Type
+                if (type !== 'all' && item.type !== type) return false;
+
+                // Rank
+                if (rank !== 'all' && item.rank !== parseInt(rank)) return false;
+
+                // BR Range
+                if (item.br < minBr || item.br > maxBr) return false;
+
+                // Favorites filter
+                if (showFavoritesOnly && !favorites.includes(item.id)) return false;
+
+                return true;
+            });
+
+            // Sorting Logic
+            filtered.sort((a, b) => {
+                if (sort === 'br_desc') return b.br - a.br;
+                if (sort === 'br_asc') return a.br - b.br;
+                if (sort === 'name_asc') return a.name.localeCompare(b.name);
+                if (sort === 'rank_desc') return b.rank - a.rank;
+                return 0;
+            });
+
+            resultsCount.textContent = filtered.length;
+            renderCards(filtered);
+        }
+
+        function renderCards(items) {
+            cardsGrid.innerHTML = '';
+
+            if (items.length === 0) {
+                cardsGrid.classList.add('hidden');
+                emptyState.classList.remove('hidden');
+                return;
+            }
+
+            cardsGrid.classList.remove('hidden');
+            emptyState.classList.add('hidden');
+
+            items.forEach(item => {
+                const isFav = favorites.includes(item.id);
+                const isCompared = compareList.includes(item.id);
+
+                // Icon selection per vehicle type
+                let typeIcon = 'fa-shield-halved';
+                if (item.type === 'aviation') typeIcon = 'fa-plane';
+                if (item.type === 'helicopter') typeIcon = 'fa-helicopter';
+                if (item.type === 'fleet') typeIcon = 'fa-ship';
+
+                const card = document.createElement('div');
+                card.className = "bg-wt-card border border-wt-border hover:border-amber-600/60 rounded-xl p-4 flex flex-col justify-between transition-all duration-200 hover:-translate-y-1 hover:shadow-lg relative group clip-corner";
+
+                card.innerHTML = `
+                    <div>
+                        <!-- Header Row: Flag, Type Badge, BR Badge -->
+                        <div class="flex items-center justify-between mb-3">
+                            <div class="flex items-center gap-1.5">
+                                <span class="text-xl leading-none">${item.flag}</span>
+                                <span class="text-[11px] font-bold uppercase tracking-wider text-slate-400 bg-slate-800/80 px-2 py-0.5 rounded border border-slate-700">
+                                    <i class="fa-solid ${typeIcon} text-amber-500 mr-1"></i> ${item.typeName}
+                                </span>
+                            </div>
+                            <div class="flex items-center gap-1.5">
+                                <span class="text-[10px] font-mono text-slate-400 bg-slate-900 px-1.5 py-0.5 rounded">Ранг ${getRomanRank(item.rank)}</span>
+                                <span class="text-xs font-mono font-black text-slate-900 bg-amber-400 px-2 py-0.5 rounded shadow">
+                                    БР ${item.br.toFixed(1)}
+                                </span>
+                            </div>
+                        </div>
+
+                        <!-- Vehicle Title -->
+                        <h3 class="text-lg font-black text-slate-100 group-hover:text-amber-400 transition mb-1 uppercase tracking-wide">
+                            ${item.name}
+                        </h3>
+                        <p class="text-xs text-slate-400 mb-4 line-clamp-1">${item.nationName}</p>
+
+                        <!-- Key Quick Stats -->
+                        <div class="space-y-1.5 bg-[#121417] p-2.5 rounded-lg border border-wt-border text-xs mb-4">
+                            <div class="flex justify-between">
+                                <span class="text-slate-400">Скорость:</span>
+                                <span class="font-mono text-slate-200 font-semibold">${item.speed.split('(')[0]}</span>
+                            </div>
+                            <div class="flex justify-between">
+                                <span class="text-slate-400">Пробитие/Оружие:</span>
+                                <span class="font-mono text-amber-400 font-semibold truncate max-w-[140px]" title="${item.penetration}">${item.penetration}</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Action Buttons Card Footer -->
+                    <div class="flex items-center justify-between pt-3 border-t border-wt-border/60 gap-2">
+                        <button onclick="openDetailModal('${item.id}')" class="flex-grow py-1.5 px-3 bg-slate-800 hover:bg-amber-600 text-slate-200 hover:text-slate-950 font-bold text-xs rounded transition flex items-center justify-center gap-1.5">
+                            <i class="fa-solid fa-circle-info"></i> ТТХ и Описание
+                        </button>
+                        
+                        <!-- Favorite Button -->
+                        <button onclick="toggleFavorite('${item.id}')" class="p-1.5 rounded bg-[#121417] hover:bg-slate-800 border ${isFav ? 'border-amber-500 text-amber-400' : 'border-wt-border text-slate-400'} transition" title="В избранное">
+                            <i class="fa-${isFav ? 'solid' : 'regular'} fa-bookmark"></i>
+                        </button>
+
+                        <!-- Compare Button -->
+                        <button onclick="toggleCompare('${item.id}')" class="p-1.5 rounded bg-[#121417] hover:bg-slate-800 border ${isCompared ? 'border-blue-500 text-blue-400' : 'border-wt-border text-slate-400'} transition" title="Сравнить">
+                            <i class="fa-solid fa-code-compare"></i>
+                        </button>
+                    </div>
+                `;
+
+                cardsGrid.appendChild(card);
+            });
+        }
+
+        // Helpers
+        function getRomanRank(rank) {
+            const roman = ["", "I", "II", "III", "IV", "V", "VI", "VII", "VIII"];
+            return roman[rank] || rank;
+        }
+
+        function updateCounters() {
+            favCounter.textContent = favorites.length;
+            compareCounter.textContent = `${compareList.length}/2`;
+        }
+
+        // Favorites Storage Logic
+        function toggleFavorite(id) {
+            if (favorites.includes(id)) {
+                favorites = favorites.filter(favId => favId !== id);
+            } else {
+                favorites.push(id);
+            }
+            localStorage.setItem('wt_favorites', JSON.stringify(favorites));
+            updateCounters();
+            applyFilters();
+        }
+
+        // Compare Logic
+        function toggleCompare(id) {
+            if (compareList.includes(id)) {
+                compareList = compareList.filter(cmpId => cmpId !== id);
+            } else {
+                if (compareList.length >= 2) {
+                    compareList.shift(); // Remove first if already 2
+                }
+                compareList.push(id);
+            }
+            localStorage.setItem('wt_compare', JSON.stringify(compareList));
+            updateCounters();
+            applyFilters();
+        }
+
+        function clearCompareList() {
+            compareList = [];
+            localStorage.setItem('wt_compare', JSON.stringify(compareList));
+            updateCounters();
+            renderCompareTable();
+            applyFilters();
+        }
+
+        // Detail Modal
+        function openDetailModal(id) {
+            const item = db.find(v => v.id === id);
+            if (!item) return;
+
+            document.getElementById('modalTitle').textContent = `${item.flag} ${item.name}`;
+            document.getElementById('modalNationBadge').textContent = item.nationName;
+            document.getElementById('modalTypeBadge').textContent = item.typeName;
+            document.getElementById('modalRankBadge').textContent = `Ранг ${getRomanRank(item.rank)}`;
+            document.getElementById('modalBR').textContent = item.br.toFixed(1);
+
+            document.getElementById('statSpeed').textContent = item.speed;
+            document.getElementById('statPenetration').textContent = item.penetration;
+            document.getElementById('statReload').textContent = item.reload;
+            document.getElementById('statCrew').textContent = item.crew;
+
+            // Armament List
+            const armList = document.getElementById('modalArmamentList');
+            armList.innerHTML = item.armament.map(a => `<li class="flex items-center gap-2"><i class="fa-solid fa-angle-right text-amber-500 text-xs"></i> <span>${a}</span></li>`).join('');
+
+            // Armor Specs
+            document.getElementById('modalArmorSpecs').textContent = item.armor;
+
+            // Pros & Cons
+            document.getElementById('modalPros').innerHTML = item.pros.map(p => `<li class="mb-1">${p}</li>`).join('');
+            document.getElementById('modalCons').innerHTML = item.cons.map(c => `<li class="mb-1">${c}</li>`).join('');
+
+            // Tactics
+            document.getElementById('modalTactics').textContent = item.tactics;
+
+            // Modal compare button state
+            const cmpBtn = document.getElementById('modalCompareToggle');
+            const isCompared = compareList.includes(item.id);
+            cmpBtn.className = `px-4 py-2 rounded border text-sm font-medium transition flex items-center gap-2 ${isCompared ? 'bg-blue-950/60 border-blue-500 text-blue-400' : 'bg-wt-card border-wt-border hover:border-blue-500 text-slate-200'}`;
+            cmpBtn.onclick = () => {
+                toggleCompare(item.id);
+                openDetailModal(item.id);
+            };
+
+            document.getElementById('detailModal').classList.remove('hidden');
+            document.body.style.overflow = 'hidden';
+        }
+
+        function closeDetailModal() {
+            document.getElementById('detailModal').classList.add('hidden');
+            document.body.style.overflow = 'auto';
+        }
+
+        // Comparison Modal Logic
+        function openCompareModal() {
+            renderCompareTable();
+            document.getElementById('compareModal').classList.remove('hidden');
+            document.body.style.overflow = 'hidden';
+        }
+
+        function closeCompareModal() {
+            document.getElementById('compareModal').classList.add('hidden');
+            document.body.style.overflow = 'auto';
+        }
+
+        function renderCompareTable() {
+            const empty = document.getElementById('compareEmptyState');
+            const tableWrapper = document.getElementById('compareTableWrapper');
+            const tbody = document.getElementById('compareTableBody');
+
+            if (compareList.length === 0) {
+                empty.classList.remove('hidden');
+                tableWrapper.classList.add('hidden');
+                return;
+            }
+
+            empty.classList.add('hidden');
+            tableWrapper.classList.remove('hidden');
+
+            const item1 = db.find(v => v.id === compareList[0]);
+            const item2 = db.find(v => v.id === compareList[1]);
+
+            document.getElementById('cmpHeader1').textContent = item1 ? `${item1.flag} ${item1.name}` : "— Выберите технику —";
+            document.getElementById('cmpHeader2').textContent = item2 ? `${item2.flag} ${item2.name}` : "— Выберите технику —";
+
+            const rows = [
+                { label: "Нация", v1: item1 ? item1.nationName : "-", v2: item2 ? item2.nationName : "-" },
+                { label: "Тип", v1: item1 ? item1.typeName : "-", v2: item2 ? item2.typeName : "-" },
+                { label: "Боевой Рейтинг (БР)", v1: item1 ? item1.br.toFixed(1) : "-", v2: item2 ? item2.br.toFixed(1) : "-" },
+                { label: "Ранг", v1: item1 ? getRomanRank(item1.rank) : "-", v2: item2 ? getRomanRank(item2.rank) : "-" },
+                { label: "Макс. Скорость", v1: item1 ? item1.speed : "-", v2: item2 ? item2.speed : "-" },
+                { label: "Пробитие / Главное вооружение", v1: item1 ? item1.penetration : "-", v2: item2 ? item2.penetration : "-" },
+                { label: "Перезарядка / Скорострельность", v1: item1 ? item1.reload : "-", v2: item2 ? item2.reload : "-" },
+                { label: "Защита / Броня", v1: item1 ? item1.armor : "-", v2: item2 ? item2.armor : "-" },
+            ];
+
+            tbody.innerHTML = rows.map(r => `
+                <tr class="hover:bg-slate-800/40">
+                    <td class="p-3 font-sans font-semibold text-xs uppercase text-slate-400 bg-slate-900/40">${r.label}</td>
+                    <td class="p-3 text-slate-200">${r.v1}</td>
+                    <td class="p-3 text-slate-200">${r.v2}</td>
+                </tr>
+            `).join('');
+        }
+    </script>
+</body>
+  </html>
